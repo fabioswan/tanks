@@ -6,8 +6,6 @@ export function Engine(entities, update, render) {
     function main( tFrame ) {
       Engine.stop = window.requestAnimationFrame(main);
       
-
-      // Loop Contents
       let deltaTime = pFrame - tFrame;
       update( deltaTime );
       render();

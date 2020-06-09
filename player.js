@@ -51,15 +51,12 @@ Player.prototype.mouseMove = function(ev) {
 }
 
 
-Player.prototype.draw = function(ctx) {
+Player.prototype.draw = function(ctx, tile_sheet) {
 
   ////////////
   // BROKEN //
   ////////////
 
-  buffer.drawImage()
-  
-  
   ctx.save();
 
   //ctx.translate(100, 100);
@@ -72,7 +69,6 @@ Player.prototype.draw = function(ctx) {
   ctx.restore();
   
   ctx.save();
-
 
   this.turret.draw(ctx);
   
