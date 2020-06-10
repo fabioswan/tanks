@@ -1,12 +1,25 @@
+import { Bullet } from './Bullet.js';
+import { Turret } from './Turret.js';
+
 export function Player() {
-  this.size = 20;
-  this.style = "#004257";
-  this.speed = 3;
-  this.x = 10;
-  this.y = 10;
+  this.size = 32; // Player size -- TODO: Replace with tileSize
+  this.speed = 4; // Movement speed
+  this.x = 300; // Spawn Location X
+  this.y = 300; // Spawn Location Y
+
+  // TODO: Clean up rotation variables
+  this.rotationSpeed = 0.1; // Sets the speed of tanks rotation
+  this.prevRotation = 0;
+  this.newRotation = 0;
   this.rotation = 0;
-  this.mouse = [0,0];
+
+
+  this.mouse = [0,0]; // Mouse location
   this.target = [0,0];
+  this.shooting = false;
+  this.firerate = 10; // Larger number for slower fire rate... I should fix this at some point.
+  this.firerateCounter = this.firerate; // Pretty sloppy counter to set the firerate
+  this.bullets = [];
 
   this.velocity = {
     left: false,
@@ -17,31 +30,98 @@ export function Player() {
 
   this.turret = new Turret(20, this);
 
+  this.shoot = function() {
+    let delta = {
+      x: this.mouse[0] - (this.x + this.size/2),
+      y: this.mouse[1] - (this.y + this.size/2)
+    }
+
+    normalize(delta);
+    // TODO: Fix bullet offset from turret
+    // TODO: Rotate bullets!
+    // TODO: Possibility to shoot own bullets!
+    this.bullets.push(new Bullet(this.x+this.size/2 + (delta.x*25), this.y+this.size/2 + (delta.y*25), delta.x, delta.y));
+  }
+
+
+ // TODO: Fix this HORRIBLE function for tank rotation. There has to be a much cleaner way to do this.
   this.rotate = function() {
+    this.prevRotation = this.rotation;
     if(this.velocity.left) {
-      this.target[0] = this.x - 50;
+      this.target[0] = this.x + (this.size/2) - 50;
     }
     else if(this.velocity.right) {
-      this.target[0] = this.x + 50;
+      this.target[0] = this.x + (this.size/2) + 50;
     }
     else {
       this.target[0] = this.x + this.size/2;
     }
     if(this.velocity.up) {
-      this.target[1] = this.y - 50;
+      this.target[1] = this.y + (this.size/2) - 50;
     }
     else if(this.velocity.down) {
-      this.target[1] = this.y + 50;
+      this.target[1] = this.y + (this.size/2) + 50;
     }
     else {
       this.target[1] = this.y + this.size/2;
     }
-    var dx = this.target[0]-this.x - this.size/2;
-    var dy = this.target[1]-this.y - this.size/2;
-    this.rotation = Math.atan2(dy, dx);
-  
-    
+
+
+    var dx = this.target[0] - this.x - this.size/2;
+    var dy = this.target[1] - this.y - this.size/2;
+    this.newRotation = Math.atan2(dy, dx);
+    let newRot = (this.newRotation).toPrecision(3);
+    let prevRot = (this.prevRotation).toPrecision(3);
+    console.log(newRot + " | " + prevRot);
+    //this.rotationSpeed *= prevRot < -.01 ? -1 : 1;
+
+    let direction = 0;
+
+    if(Math.abs(newRot) - Math.abs(prevRot) < 0.05 && Math.abs(newRot) - Math.abs(prevRot) > -0.05) {
+      direction = 0;
+    } else if((Math.abs(newRot) - (Math.abs(prevRot)+Math.PI) < 0.05 && Math.abs(newRot) - (Math.abs(prevRot)+Math.PI) > -0.05) ||
+              ((Math.abs(newRot)+Math.PI) - Math.abs(prevRot) < 0.05 && (Math.abs(newRot)+Math.PI) - Math.abs(prevRot) > -0.05)) {
+      direction = 0;
+    } else {
+      if(newRot - prevRot > 0) {
+        if(newRot > 3 && (prevRot < -0.9)) {
+          direction = -1;
+        } else {
+          direction = 1;
+        }
+      }
+      if(newRot - prevRot < 0) {
+        if(newRot < -1.5 && (prevRot > 2.5)) {
+          if(prevRot > 3.13) {
+            this.prevRotation = -3.1;
+            this.rotation = -3.1;
+            direction = 1;
+          } else {
+            direction = -1;
+          }
+        } else  {
+          direction = -1;
+        }
+      }
+    }
+
+    console.log(direction);
+
+    this.changeRotation(direction);
+
+    if(this.rotation > Math.PI) {
+      this.rotation = Math.PI;
+    }
+    if(this.rotation < -Math.PI) {
+      this.rotation = Math.PI;
+    }
   }
+}
+
+Player.prototype.changeRotation = function(direction) {
+  if( direction === -1 ) { this.rotation -= this.rotationSpeed; }
+  if( direction === 0 ) { this.rotation = this.newRotation; }
+  if( direction === 1 ) { this.rotation += this.rotationSpeed; }
 }
 
 Player.prototype.mouseMove = function(ev) {
@@ -52,79 +132,90 @@ Player.prototype.mouseMove = function(ev) {
 
 
 Player.prototype.draw = function(ctx, tile_sheet) {
-
-  ////////////
-  // BROKEN //
-  ////////////
+  // DEBUG Target Dot
+  // ctx.fillRect(this.target[0], this.target[1], 2, 2);
 
   ctx.save();
-
-  //ctx.translate(100, 100);
-  //ctx.rotate(0.4);
-  
-  ctx.fillStyle = "#000";
-  ctx.fillRect(this.x-2, this.y+1, this.size+4, this.size-2);
-  ctx.fillStyle = this.style;
-  ctx.fillRect(this.x, this.y-2, this.size, this.size+4);
+  ctx.translate(this.x + this.size/2, this.y + this.size/2);
+  ctx.rotate(this.rotation);
+  ctx.drawImage(tile_sheet, 0, 0, 32, 32, 0 - this.size/2, 0 - this.size/2, 32, 32);
   ctx.restore();
-  
-  ctx.save();
 
-  this.turret.draw(ctx);
-  
+  for(let bullet of this.bullets) {
+    bullet.draw(ctx, tile_sheet);
+  }
+
+  this.turret.draw(ctx, tile_sheet);
+
 };
 
 
 Player.prototype.update = function(deltaTime) {
-  if(this.velocity.left == true) {
-    this.x -= this.speed;
+  var delta = {
+    x: 0,
+    y: 0,
+  }
+  if(this.velocity.left === true) {
+    delta.x = -1;
     this.rotate();
   }
-  if(this.velocity.right == true) {
-    this.x += this.speed;
+  if(this.velocity.right === true) {
+    delta.x = 1;
+    this.rotate();
   }
-  if(this.velocity.up == true) {
-    this.y -= this.speed;
+  if(this.velocity.up === true) {
+    delta.y = -1;
+    this.rotate();
   }
-  if(this.velocity.down == true) {
-    this.y += this.speed;
+  if(this.velocity.down === true) {
+    delta.y = 1;
+    this.rotate();
   }
+  normalize(delta);
+
+  //// TODO: Fix bouncy corners for tank.
+
+  let windowWidth = document.documentElement.clientWidth - this.size;
+  let windowHeight = document.documentElement.clientHeight - this.size;
+  if(this.x > windowWidth) {
+    this.x = windowWidth;
+  }
+  if(this.x <= 0) {
+    this.x = 0;
+  }
+  if(this.y >= windowHeight) {
+    this.y = windowHeight;
+  }
+  if(this.y <= 0) {
+    this.y = 0;
+  }
+
+  delta.x *= this.speed;
+  delta.y *= this.speed;
+  this.x += delta.x;
+  this.y += delta.y;
+  if(this.shooting && this.firerateCounter > this.firerate) {
+    this.shoot();
+    this.firerateCounter = 0;
+  }
+  this.firerateCounter++;
+
+  for (let i=0; i<this.bullets.length; i++) {
+    let bullet = this.bullets[i];
+    bullet.update();
+    if(bullet.bounces > bullet.maxBounces) {
+      this.bullets.shift();
+      bullet = null;
+    }
+  }
+
   this.turret.update();
 };
 
-function Turret(size, parent) {
-  this.x = parent.x + parent.size/2 - size/8;
-  this.y = parent.y + parent.size/2 - size/2;
-  this.width = size/4;
-  this.height = size;
-  this.rotation;
-
-  this.draw = function(ctx) {
-    // Turret of Tank
-    ctx.fillStyle = "#002d3b";
-    ctx.translate(this.x + this.width/2, this.y + this.height/2);
-    ctx.rotate(this.rotation);
-    ctx.fillRect(this.width / -2, this.height / -6, this.width, this.height);
-    ctx.restore();
-
-    // Dome of Tank
-    ctx.beginPath();
-    ctx.arc(this.x + this.width/2, this.y + this.height/2, 8, 0, Math.PI*2);
-    ctx.fillStyle = "#002d3b";
-    ctx.fill();
-    ctx.closePath()
-    
-  }
-  this.update = function() {
-    this.x = parent.x + parent.size/2 - size/8;
-    this.y = parent.y + parent.size/2 - size/2;
-    this.rotate();
-  }
-
-  this.rotate = function(rotation) {
-
-    var dx = parent.mouse[0]-this.x - parent.size;
-    var dy = parent.mouse[1]-this.y - parent.size/2;
-    this.rotation = Math.atan2(-dx, dy);
+function normalize(point) {
+  var magnitude = Math.sqrt(point.x * point.x + point.y * point.y);
+  if (magnitude != 0) {
+    point.x = 1 * point.x / magnitude;
+    point.y = 1 * point.y / magnitude;
   }
 }

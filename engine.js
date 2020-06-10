@@ -5,11 +5,12 @@ export function Engine(entities, update, render) {
   ;(function() {
     function main( tFrame ) {
       Engine.stop = window.requestAnimationFrame(main);
-      
+
       let deltaTime = pFrame - tFrame;
       update( deltaTime );
       render();
       pFrame = tFrame;
+      
     }
     main();
   })();
