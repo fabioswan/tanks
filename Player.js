@@ -72,8 +72,6 @@ export function Player() {
     this.newRotation = Math.atan2(dy, dx);
     let newRot = (this.newRotation).toPrecision(3);
     let prevRot = (this.prevRotation).toPrecision(3);
-    console.log(newRot + " | " + prevRot);
-    //this.rotationSpeed *= prevRot < -.01 ? -1 : 1;
 
     let direction = 0;
 
@@ -105,7 +103,6 @@ export function Player() {
       }
     }
 
-    console.log(direction);
 
     this.changeRotation(direction);
 
