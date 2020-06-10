@@ -1,5 +1,5 @@
 export function Display(entities, tiles) {
-  var loaded = false;
+  var loaded = false;https://github.com/fabioswan/tanks/blob/master/display.js
   var ctx = document.getElementById("game").getContext("2d");
   var height = document.documentElement.clientHeight;
   var width = document.documentElement.clientWidth;
