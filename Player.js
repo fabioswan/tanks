@@ -20,6 +20,7 @@ export function Player() {
   this.firerate = 10; // Larger number for slower fire rate... I should fix this at some point.
   this.firerateCounter = this.firerate; // Pretty sloppy counter to set the firerate
   this.bullets = [];
+  this.tracks = [];
 
   this.velocity = {
     left: false,
@@ -136,11 +137,19 @@ Player.prototype.draw = function(ctx, tile_sheet) {
   ctx.translate(this.x + this.size/2, this.y + this.size/2);
   ctx.rotate(this.rotation);
   ctx.drawImage(tile_sheet, 0, 0, 32, 32, 0 - this.size/2, 0 - this.size/2, 32, 32);
+  for(let track of this.tracks) {
+    track.draw(ctx);
+  }
+
   ctx.restore();
+
+
 
   for(let bullet of this.bullets) {
     bullet.draw(ctx, tile_sheet);
   }
+
+
 
   this.turret.draw(ctx, tile_sheet);
 
@@ -152,23 +161,35 @@ Player.prototype.update = function(deltaTime) {
     x: 0,
     y: 0,
   }
+  let moving = false;
   if(this.velocity.left === true) {
     delta.x = -1;
+    moving = true;
     this.rotate();
   }
   if(this.velocity.right === true) {
     delta.x = 1;
+    moving = true;
     this.rotate();
   }
   if(this.velocity.up === true) {
     delta.y = -1;
+    moving = true;
     this.rotate();
   }
   if(this.velocity.down === true) {
     delta.y = 1;
+    moving = true;
     this.rotate();
   }
   normalize(delta);
+
+  console.log(this.tracks.length)
+  if(moving) {
+    this.tracks.push(new Track(0, 0));
+  }
+
+
 
   //// TODO: Fix bouncy corners for tank.
 
@@ -191,6 +212,14 @@ Player.prototype.update = function(deltaTime) {
   delta.y *= this.speed;
   this.x += delta.x;
   this.y += delta.y;
+
+  for(let track of this.tracks) {
+    track.update();
+    if(track.life < track.aliveTime) {
+      this.tracks.shift();
+      track = null;
+    }
+  }
   if(this.shooting && this.firerateCounter > this.firerate) {
     this.shoot();
     this.firerateCounter = 0;
@@ -200,8 +229,8 @@ Player.prototype.update = function(deltaTime) {
   for (let i=0; i<this.bullets.length; i++) {
     let bullet = this.bullets[i];
     bullet.update();
-    if(bullet.bounces > bullet.maxBounces) {
-      this.bullets.shift();
+    if(!bullet.alive) {
+      this.bullets.splice(i, 1);
       bullet = null;
     }
   }
@@ -214,5 +243,25 @@ function normalize(point) {
   if (magnitude != 0) {
     point.x = 1 * point.x / magnitude;
     point.y = 1 * point.y / magnitude;
+  }
+}
+
+function Track(x, y) {
+  this.x = x;
+  this.y = y;
+  this.aliveTime = 0;
+  this.life = 100;
+
+
+
+  this.draw = function(ctx) {
+    ctx.fillStyle = "#333";
+    ctx.fillRect(x-16, y+10, 5, 5);
+    ctx.fillRect(x-16, y-15, 5, 5);
+  //  ctx.fillRect(0 + 25, this.y, 5, 5);
+
+  }
+  this.update = function() {
+    this.aliveTime++;
   }
 }
