@@ -44,6 +44,16 @@ export function Main(tile_sheet) {
   document.addEventListener('mouseup', e => {
     player.shooting = false;
   });
+  document.addEventListener("touchstart", e => {
+    player.shooting = true;
+    player.touchEvent(e);
+  });
+  document.addEventListener("touchmove", e => {
+    player.touchEvent(e);
+  });
+  document.addEventListener("touchend", e => {
+    player.shooting = false;
+  });
 
   function keyDownHandler(e) {
     if(e.keyCode === 68 || e.key === "ArrowRight") {

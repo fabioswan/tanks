@@ -130,6 +130,12 @@ Player.prototype.mouseMove = function(ev) {
   this.turret.rotate();
 }
 
+Player.prototype.touchEvent = function(ev) {
+  this.mouse[0] = ev.touches[0].pageX;
+  this.mouse[1] = ev.touches[0].pageY;
+  this.turret.rotate();
+}
+
 
 Player.prototype.draw = function(ctx, tile_sheet) {
   // DEBUG Target Dot
@@ -232,8 +238,8 @@ Player.prototype.update = function(deltaTime) {
 
     for (let j=0; j<this.bullets.length; j++) {
       if(i !== j
-        && this.bullets[i].x > this.bullets[j].x && this.bullets[i].x < this.bullets[j].x + 10
-        && this.bullets[i].y > this.bullets[j].y && this.bullets[i].y < this.bullets[j].y + 10
+        && this.bullets[i].x > this.bullets[j].x && this.bullets[i].x < this.bullets[j].x + 20
+        && this.bullets[i].y > this.bullets[j].y && this.bullets[i].y < this.bullets[j].y + 20
         ) {
         this.bullets[i].collided = true;
         this.bullets[j].collided = true;
