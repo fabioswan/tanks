@@ -6,6 +6,7 @@ export function Player() {
   this.speed = 4; // Movement speed
   this.x = 300; // Spawn Location X
   this.y = 300; // Spawn Location Y
+  this.moving = false;
 
   // TODO: Clean up rotation variables
   this.rotationSpeed = 0.1; // Sets the speed of tanks rotation
@@ -21,6 +22,10 @@ export function Player() {
   this.firerateCounter = this.firerate; // Pretty sloppy counter to set the firerate
   this.bullets = [];
   this.tracks = [];
+  this.trackOffset = {
+    x: null,
+    y: null,
+  }
 
   this.velocity = {
     left: false,
@@ -38,10 +43,7 @@ export function Player() {
     }
 
     normalize(delta);
-    // TODO: Fix bullet offset from turret
-    // TODO: Rotate bullets!
-    // TODO: Possibility to shoot own bullets!
-    this.bullets.push(new Bullet(this.x+this.size/2 + (delta.x*25), this.y+this.size/2 + (delta.y*25), delta.x, delta.y));
+    this.bullets.push(new Bullet(this.x+this.size/2 + (delta.x*23),this.y+this.size/2 + (delta.y*23),delta.x*this.speed,delta.y*this.speed,this.turret.rotation));
   }
 
 
@@ -133,26 +135,25 @@ Player.prototype.draw = function(ctx, tile_sheet) {
   // DEBUG Target Dot
   // ctx.fillRect(this.target[0], this.target[1], 2, 2);
 
-  ctx.save();
-  ctx.translate(this.x + this.size/2, this.y + this.size/2);
-  ctx.rotate(this.rotation);
-  ctx.drawImage(tile_sheet, 0, 0, 32, 32, 0 - this.size/2, 0 - this.size/2, 32, 32);
   for(let track of this.tracks) {
     track.draw(ctx);
   }
 
+
+
+  ctx.save();
+  ctx.translate(this.x + this.size/2, this.y + this.size/2);
+  ctx.rotate(this.rotation);
+  ctx.drawImage(tile_sheet, 0, 0, 32, 32, 0 - this.size/2, 0 - this.size/2, 32, 32);
   ctx.restore();
-
-
-
-  for(let bullet of this.bullets) {
-    bullet.draw(ctx, tile_sheet);
-  }
 
 
 
   this.turret.draw(ctx, tile_sheet);
 
+  for(let bullet of this.bullets) {
+    bullet.draw(ctx, tile_sheet);
+  }
 };
 
 
@@ -161,33 +162,32 @@ Player.prototype.update = function(deltaTime) {
     x: 0,
     y: 0,
   }
-  let moving = false;
+  this.moving = false;
   if(this.velocity.left === true) {
     delta.x = -1;
-    moving = true;
+    this.moving = true;
     this.rotate();
   }
   if(this.velocity.right === true) {
     delta.x = 1;
-    moving = true;
+    this.moving = true;
     this.rotate();
   }
   if(this.velocity.up === true) {
     delta.y = -1;
-    moving = true;
+    this.moving = true;
     this.rotate();
   }
   if(this.velocity.down === true) {
     delta.y = 1;
-    moving = true;
+    this.moving = true;
     this.rotate();
   }
   normalize(delta);
 
-  console.log(this.tracks.length)
-  if(moving) {
-    this.tracks.push(new Track(0, 0));
-  }
+
+  this.tracks.push(new Track(this.x, this.y, this.rotation));
+
 
 
 
@@ -213,10 +213,11 @@ Player.prototype.update = function(deltaTime) {
   this.x += delta.x;
   this.y += delta.y;
 
-  for(let track of this.tracks) {
+  for(let i=0; i<this.tracks.length; i++) {
+    let track = this.tracks[i];
     track.update();
-    if(track.life < track.aliveTime) {
-      this.tracks.shift();
+    if(this.tracks.length > track.maxTracks) {
+      this.tracks.splice(i, 1);
       track = null;
     }
   }
@@ -228,11 +229,27 @@ Player.prototype.update = function(deltaTime) {
 
   for (let i=0; i<this.bullets.length; i++) {
     let bullet = this.bullets[i];
+
+    for (let j=0; j<this.bullets.length; j++) {
+      if(i !== j
+        && this.bullets[i].x > this.bullets[j].x && this.bullets[i].x < this.bullets[j].x + 10
+        && this.bullets[i].y > this.bullets[j].y && this.bullets[i].y < this.bullets[j].y + 10
+        ) {
+        this.bullets[i].collided = true;
+        this.bullets[j].collided = true;
+      }
+    }
+
+    if(bullet.x > this.x && bullet.x < this.x+32 && bullet.y > this.y && bullet.y < this.y+32) {
+      bullet.collided = true;
+    }
+
     bullet.update();
     if(!bullet.alive) {
       this.bullets.splice(i, 1);
       bullet = null;
     }
+
   }
 
   this.turret.update();
@@ -240,28 +257,40 @@ Player.prototype.update = function(deltaTime) {
 
 function normalize(point) {
   var magnitude = Math.sqrt(point.x * point.x + point.y * point.y);
-  if (magnitude != 0) {
+  if (magnitude !== 0) {
     point.x = 1 * point.x / magnitude;
     point.y = 1 * point.y / magnitude;
   }
 }
 
-function Track(x, y) {
+function Track(x, y, rotation) {
   this.x = x;
   this.y = y;
+  this.rotation = rotation;
   this.aliveTime = 0;
-  this.life = 100;
+  this.life = 10;
+  this.width = 12;
+  this.size = 5;
+  this.maxTracks = 30;
+  var alpha = 1;
+  var alphaRate = 1/this.maxTracks;
 
 
-
-  this.draw = function(ctx) {
+  this.draw = function (ctx) {
+    ctx.save();
+    ctx.translate(x+16, y+16);
+    ctx.rotate(this.rotation);
     ctx.fillStyle = "#333";
-    ctx.fillRect(x-16, y+10, 5, 5);
-    ctx.fillRect(x-16, y-15, 5, 5);
-  //  ctx.fillRect(0 + 25, this.y, 5, 5);
-
+    ctx.globalAlpha = alpha;
+    ctx.fillRect(-16, -this.width-2, this.size, this.size);
+    ctx.fillRect(-16, this.width-2, this.size, this.size);
+    ctx.restore();
+    if(alpha >= 0) { alpha -= alphaRate; }
   }
+
+
+
   this.update = function() {
-    this.aliveTime++;
+    //this.aliveTime++;
   }
 }

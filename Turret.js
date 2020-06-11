@@ -7,7 +7,7 @@ export function Turret(size, parent) {
 
   this.draw = function(ctx, tile_sheet) {
     // Turret of Tank
-
+    ctx.save();
     ctx.translate(this.x+2, this.y + this.height/2);
     ctx.rotate(this.rotation);
     ctx.drawImage(tile_sheet, 32, 0, 32, 32, -8.5, -15.5, 32, 32);

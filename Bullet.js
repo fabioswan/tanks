@@ -1,19 +1,31 @@
-export function Bullet(x, y, dx, dy) {
+// TODO: Update hitbox to match model size
+
+
+export function Bullet(x, y, dx, dy, rotation) {
   this.x = x;
   this.y = y;
+  this.height = 6;
+  this.width = 29;
+  this.rotation = rotation;
   this.dx = dx;
   this.dy = dy;
-  this.speed = 8;
+  this.speed = 2;
   this.alive = true;
+  this.collided = false;
   this.bounces = 0;
-  this.maxBounces = 5;
+  this.maxBounces = 4;
   this.explosionRadius = 0;
   this.explosionSpeed = 2;
   this.maxExplosionRadius = 20;
   this.explosionColor = "#ffa14a"
+  let flipped = false;
+  let counter = 0;
+  let randomAnimation = 10 * Math.random();
+  console.log(randomAnimation);
 
   this.draw = function(ctx, tile_sheet) {
-    if(this.bounces > this.maxBounces) {
+    ctx.save();
+    if(this.bounces > this.maxBounces || this.collided) {
       this.speed = 0;
       if(this.explosionRadius < this.maxExplosionRadius) {
         this.explosionRadius += this.explosionSpeed;
@@ -26,32 +38,45 @@ export function Bullet(x, y, dx, dy) {
         this.alive = false;
       }
     } else {
-      ctx.save();
-      ctx.drawImage(tile_sheet, 65, 0, 8, 5, this.x, this.y, 8, 5);
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rotation);
+      counter++;
+      if(counter > randomAnimation) {
+        counter = 0;
+        flipped = !flipped;
+      }
+
+      if(flipped) {
+        ctx.drawImage(tile_sheet, 65, 0, this.width, this.height, -this.height/2, -this.height/2, this.width, this.height);
+      } else {
+        ctx.drawImage(tile_sheet, 65, 7, this.width, this.height, -this.height/2, -this.height/2, this.width, this.height);
+      }
+
       ctx.restore();
     }
+    ctx.restore();
+
   }
   this.update = function() {
-    this.aliveTime++;
     let windowWidth = document.documentElement.clientWidth;
     let windowHeight = document.documentElement.clientHeight;
-    if(this.x > windowWidth) {
-      this.x = windowWidth - 1
+    if(this.x >= windowWidth - 3) {
+      this.rotation = Math.PI - this.rotation;
       dx = -dx;
       this.bounces++;
     }
-    if(this.x < 0) {
-      this.x = 1;
+    if(this.x < 3) {
+      this.rotation = Math.PI - this.rotation;
       dx = -dx;
       this.bounces++;
     }
-    if(this.y > windowHeight) {
-      this.y = windowHeight - 1
+    if(this.y > windowHeight  - 3) {
+      this.rotation = -this.rotation;
       dy = -dy;
       this.bounces++;
     }
-    if(this.y < 0) {
-      this.y = 1;
+    if(this.y < 3) {
+      this.rotation = -this.rotation;
       dy = -dy;
       this.bounces++;
     }
