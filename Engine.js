@@ -1,17 +1,11 @@
-export function Engine(entities, update, render) {
-  this.update = update;
-  this.render = render;
-  var pFrame = 0;
+export function Engine(game,display) {
   ;(function() {
-    function main( tFrame ) {
-      Engine.stop = window.requestAnimationFrame(main);
+    function gameLoop( tFrame ) {
+      Engine.stop = window.requestAnimationFrame(gameLoop);
+      game.update();
+      display.render(game);
 
-      let deltaTime = pFrame - tFrame;
-      update( deltaTime );
-      render();
-      pFrame = tFrame;
-      
     }
-    main();
+    gameLoop();
   })();
 }
